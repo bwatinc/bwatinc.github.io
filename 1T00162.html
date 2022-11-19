@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Results Visualizer - Mumbai University</title>
+	<title>MCA SEM II Results Visualizer - Mumbai University</title>
 	<script src="https://unpkg.com/csv-visualizer@1.0.2/dist/csv-visualizer.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -30,10 +30,19 @@
 	</table>
 	<textarea id="myTextarea" cols="150" rows="10"></textarea>
 	<br/>
-	<button onclick="rawResultChanged()">Visualize</button>
+	<button onclick="display()">Visualize</button>
 	<button onclick="print()">Save PDF</button>
 	<hr id="separator" />
 	<div id="marks"></div>
+	<footer>
+		<div id="visits"></div>
+	</footer>
+	<script>
+	function cb(response) {
+		document.getElementById('visits').innerText = "Total Visits: " + response.value;
+	}
+	</script>
+	<script async src="https://api.countapi.xyz/hit/bwatinc.github.io/visits?callback=cb"></script>
 </body>
 <script>
 	const marksDiv = document.getElementById('marks')
@@ -43,6 +52,7 @@
 	const nameField = document.getElementById('studName')
 	const prnField = document.getElementById('studPRN')
 	const collegeField = document.getElementById('studCollege')
+	const visitsField = document.getElementById('visits')
 	studentsInfo.hidden = true;
 	
 	const subjects = [
@@ -76,13 +86,14 @@
 	
 	async function print(){
 		if(studentsInfo.hidden){
-			await rawResultChanged()
+			await display()
 		}
 		const buttons = document.getElementsByTagName('button')
 		const separator = document.getElementById('separator')
 
 		textarea.hidden = true;
 		separator.hidden = true;
+		visitsField.hidden = true;
 		
 		buttons.forEach(element => {
 			element.hidden = true;
@@ -101,12 +112,13 @@
 
 		textarea.hidden = false;
 		separator.hidden = false;
+		visitsField.hidden = false;
 		buttons.forEach(element => {
 			element.hidden = false;
 		});
 	}
 
-	async function rawResultChanged(){
+	async function display(){
 		marksDiv.innerHTML = ''
 		const result_raw = textarea.value;
 		
