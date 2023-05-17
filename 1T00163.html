@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>MCA SEM III Results Visualizer - Mumbai University</title>
+	<script src="https://unpkg.com/csv-visualizer@1.0.2/dist/csv-visualizer.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body onload="placeholder()">
+	<h1>Mumbai University Result Visualizer - MCA SEM III</h1>
+	<table id="studentInfo">
+		<tr>
+			<td>Seat Number</td>
+			<td id="seatNum"></td>
+		</tr>
+		<tr>
+			<td>Name</td>
+			<td id="studName"></td>
+		</tr>
+		<tr>
+			<td>PRN</td>
+			<td id="studPRN"></td>
+		</tr>
+		<tr>
+			<td>College</td>
+			<td id="studCollege"></td>
+		</tr>
+	</table>
+	<textarea id="myTextarea" cols="150" rows="10"></textarea>
+	<br/>
+	<button onclick="display()">Visualize</button>
+	<button onclick="print()">Save PDF</button>
+	<hr id="separator" />
+	<div id="marks"></div>
+	<footer>
+		<div id="visits"></div>
+	</footer>
+	<script>
+	function cb(response) {
+		document.getElementById('visits').innerText = "Total Visits: " + response.value;
+	}
+	</script>
+	<script async src="https://api.countapi.xyz/hit/bwatinc.github.io/visits?callback=cb"></script>
+</body>
+<script>
+	const marksDiv = document.getElementById('marks')
+	const studentsInfo = document.getElementById('studentInfo')
+	const textarea = document.getElementById('myTextarea')
+	const seatField = document.getElementById('seatNum')
+	const nameField = document.getElementById('studName')
+	const prnField = document.getElementById('studPRN')
+	const collegeField = document.getElementById('studCollege')
+	const visitsField = document.getElementById('visits')
+	studentsInfo.hidden = true;
+	
+	const subjects = [
+		'BDAV',
+		'BDAV_LAB',
+		'DSCC',
+		'DSCC_LAB',
+		'ELECTIVE3',
+		'ELECTIVE3_LAB',
+		'ELECTIVE4',
+		'ELECTIVE4_TUT',
+		'MC_LAB',
+		'STQA',
+		'MINI_PROJ',
+	]
+
+	function placeholder() {
+		textarea.placeholder = `SEAT_NO NAME PRN
+----------------------------------------------------------------------------------------------------------------------------------
+<------------------- Course I (CR 3+1) ----------------->|<------------------- Course II------(CR 3+1) --------------->
+80/36 20/09 100 C G GP C*GP 25/11 50/23 75 C G GP C*GP 80/36 20/09 100 C G GP C*GP 25/11 50/23 75 C G GP C*GP
+<------------------- Course III (CR 3+1)----------------->|<------------------- Course IV-------(CR 3+1) -------------->
+80/36 20/09 100 C G GP C*GP 25/11 50/23 75 C G GP C*GP|80/36 20/09 100 C G GP C*GP 25/11 C G GP C*GP
+<---- Course V --(CR 2) ------><---- Course VI (CR 1) -------->|<---- Course VII-----(CR 1)------------->
+50/23 50/23 100 C G GP C*GP | 25/11 50/23 75 C G GP C*GP | 50/23 C G GP C*GP `
+	}
+	
+	async function print(){
+		if(studentsInfo.hidden){
+			await display()
+		}
+		const buttons = document.getElementsByTagName('button')
+		const separator = document.getElementById('separator')
+
+		textarea.hidden = true;
+		separator.hidden = true;
+		visitsField.hidden = true;
+		
+		buttons.forEach(element => {
+			element.hidden = true;
+		});
+
+		var opt = {
+		margin:       0,
+		filename:     'mca_result.pdf',
+		image:        { type: 'png', quality: 0.98 },
+		html2canvas:  { scale: 2 },
+		jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait', compress: true }
+		};
+
+		// New Promise-based usage:
+		await html2pdf().set(opt).from(document.body).save();
+
+		textarea.hidden = false;
+		separator.hidden = false;
+		visitsField.hidden = false;
+		buttons.forEach(element => {
+			element.hidden = false;
+		});
+	}
+
+	async function display(){
+		marksDiv.innerHTML = ''
+        
+        if (textarea.value.charAt(textarea.value.length) !== '|' ){
+            textarea.value = textarea.value + '|'
+        }
+		const result_raw = textarea.value;
+		const result = result_raw
+					.replace(/\s?\|/g, '\n')
+					.replace(/(\n\n)|(\n\s+)/g,'\n')
+					.replace(/\*\n/g,'')
+					.replace(/\(([A-Z])\)|\(([A-Z]\s)\)/g, '')
+					.replace(/\s{4,}([FP])/,'')
+					.replace(/((\d{2})([A-Z]))/g,'$2 ')
+					.replace(/[^\S\r\n]+/g, ',')
+					.replace(/\n\,/g, '\n')
+                    
+    const record_lines = result.split('\n')
+		const details_raw = record_lines.shift();
+		const details = details_raw.replaceAll(',',' ');
+		const seat_number = details.match(/\d{7}/)[0];
+		const student_name_arr = details.match(/(([A-Z])\s?){3,}/g);
+		const prn = details.match(/\d{14,16}/)[0]
+		const college = details.match(/COLL.*/)[0]
+		while(student_name_arr.includes("COLL ")){
+			student_name_arr.pop()
+		}
+		const student_name = student_name_arr.join(' ');
+		studentsInfo.hidden = false;
+
+		seatField.textContent = seat_number;
+		nameField.textContent = student_name;
+		prnField.textContent = prn;
+		collegeField.textContent = college;
+		record_lines.pop()
+
+		const csv_lines = [
+			"Subject,Marks,InternalMarks,TotalMarks,Credits,Grade,GP,C*GP"
+		]
+		record_lines.forEach((line,idx) => {
+			if(idx == -1){
+				csv_lines.push(`${subjects[idx]},--,${line}`);
+			}else if(idx == 7|| idx == 10){
+				csv_lines.push(`${subjects[idx]},--,--,${line}`);
+			}else{
+				csv_lines.push(`${subjects[idx]},${line}`);
+			}
+		})
+
+		CsvVisualizer.visualize(csv_lines.join('\n'), marksDiv);
+		const result_headers = document.getElementsByClassName('table-header');
+		for (let index = 0; index < result_headers.length; index++) {
+			result_headers[index].remove();
+		}
+		return true;
+	}
+</script>
+</html>
